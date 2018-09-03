@@ -1,0 +1,8 @@
+{
+  "target": "run_in_terminus",
+  // "target_file": "$file",  // this doesn't autocomplete... annoying
+  "working_dir": "$file_path",  // $project_path
+  "split_view": true,
+  "logout_on_finished": false,
+  "auto_close": true
+}

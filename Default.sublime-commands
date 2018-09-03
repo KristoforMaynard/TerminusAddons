@@ -1,0 +1,14 @@
+[
+  { "command": "split_open_terminus",
+    "args": {"direction": "down", "autoclose": true},
+    "caption": "Open New Terminal (Below)"
+  },
+  { "command": "run_in_terminus",
+    "args": {"split_view": true,
+             "direction": "down"},
+    "caption": "Run File In Terminal (Below)"
+  },
+  { "command": "terminus_select_python_venv",
+    "caption": "Terminus: Select Python Environment"
+  }
+]

@@ -1,0 +1,24 @@
+[
+  // TerminusAddon
+  { "keys": ["ctrl+k", "ctrl+t"],
+    "command": "split_open_terminus",
+    "args": {"direction": "down"}
+  },
+  { "keys": ["ctrl+alt+b"],
+    "command": "run_in_terminus",
+    "args": {"split_view": true,
+             "direction": "down"}
+  },
+
+  // Terminus keys
+  { "keys": ["ctrl+alt+`"],
+    "command": "toggle_terminus_panel"
+  },
+
+  {"keys": ["ctrl+c"], "command": "terminus_keypress",
+    "args": {"key": "c", "ctrl": true},
+    "context": [{"key": "terminus_view"}]
+  }
+
+  // alt+left / alt+right work as ctrl+left/right in windows
+]

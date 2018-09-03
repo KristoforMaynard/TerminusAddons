@@ -1,0 +1,31 @@
+[
+  // TerminusAddon
+  { "keys": ["super+k", "super+t"],
+    "command": "split_open_terminus",
+    "args": {"direction": "down"}
+  },
+  { "keys": ["super+alt+b"],
+    "command": "run_in_terminus",
+    "args": {"split_view": true,
+             "direction": "down"}
+  },
+
+  // Terminus keys
+  { "keys": ["super+alt+`"],
+    "command": "toggle_terminus_panel"
+  },
+
+  {"keys": ["ctrl+c"], "command": "terminus_keypress",
+    "args": {"key": "c", "ctrl": true},
+    "context": [{"key": "terminus_view"}]
+  },
+
+  {"keys": ["alt+left"], "command": "terminus_keypress",
+    "args": {"key": "b", "alt": true},
+    "context": [{"key": "terminus_view"}]
+  },
+  {"keys": ["alt+right"], "command": "terminus_keypress",
+    "args": {"key": "f", "alt": true},
+    "context": [{"key": "terminus_view"}]
+  }
+]
