@@ -10,7 +10,11 @@ A collection of keybindings and extra commands to make Terminus just a little mo
 
 ## RunInTerminus
 
-- Run current file in new or existing terminal
+Run current file in new or existing terminal
+
+This command will automagically activate a conda environment if there is a setting named ``conda_env``
+
+This command will automagically use `pipenv run python ...` if it can detect a ``Pipfile.lock``.
 
 ## Shortcuts
 

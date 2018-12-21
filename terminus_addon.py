@@ -21,7 +21,57 @@ import sublime_plugin
 is_windows = sys.platform.startswith("win")
 
 
-interp_lookup = {'python': 'python',
+def dirs_file_to_root(window, view):
+    real_fname = os.path.realpath(view.file_name())
+    dir_list = [os.path.dirname(real_fname)]
+    for folder in window.folders():
+        real_folder = os.path.realpath(folder)
+        if os.path.commonprefix([real_fname, real_folder]) == real_folder:
+            rel = os.path.relpath(os.path.dirname(real_fname), real_folder)
+            dir_list = os.path.normpath(rel).split(os.sep)[::-1]
+            dir_list = [real_folder if d == '.' else os.path.join(real_folder, d)
+                        for d in dir_list]
+            if dir_list[-1] != real_folder:
+                dir_list += [real_folder]
+            break
+    return dir_list
+
+def conda_precmd(window, view):
+    conda_env = view.settings().get('conda_env', None)
+    if conda_env:
+        if is_windows:
+            precmd = "conda activate {0}".format(conda_env)
+        else:
+            precmd = ("""if [ "$(conda info -e | grep '*' | awk '{{print $1}}')" != "{0}" ]; """
+                      """then """
+                      """  conda activate {0} &>/dev/null || . activate {0} &>/dev/null || """
+                      """  echo "Environment {0} not found" >&2;"""
+                      """fi""".format(conda_env))
+    else:
+        precmd = None
+    return precmd
+
+def env_cmdwrap(window, view, cmd):
+    for d in dirs_file_to_root(window, view):
+        if os.path.isfile(os.path.join(d, 'Pipfile.lock')):
+            cmd = "pipenv run {0}".format(cmd)
+    return cmd
+
+# def resolve_python_precmd(window, view, filename):
+#     precmd = None
+#     return precmd
+
+# def resolve_python_interp(window, view, filename):
+#     precmd = None
+#     interp = "python"
+#     return precmd, interp
+
+
+precmd_lookup = {# 'python': resolve_python_precmd,
+                }
+
+interp_lookup = {'python': "python",
+                 # 'python': resolve_python_interp,
                  'perl': 'perl',
                  'bash': 'bash',
                  'ruby': 'ruby',
@@ -179,7 +229,7 @@ class SplitOpenTerminus(sublime_plugin.WindowCommand):
 
                 window.run_command("terminus_open", args=kwargs)
 
-def make_cmd(window, filename=None, logout_on_finished=False):
+def make_cmd(window, view, filename=None, logout_on_finished=False):
     v = window.extract_variables()
     platform = v['platform'].strip().lower()
     if filename is None:
@@ -204,13 +254,30 @@ def make_cmd(window, filename=None, logout_on_finished=False):
         # sublime.error_message("Not sure how to run: {0}".format(filename))
         cmd = ''
 
+    cmds = []
+    cmds.append(conda_precmd(window, view))
+
     if cmd.startswith('<'):
         stop = cmd.find('>')
+        cmd_name = cmd[1:stop]
+
         try:
-            interp = interp_lookup[cmd[1:stop]]
+            cmds.append(precmd_lookup[cmd_name](window, view, filename))
         except KeyError:
-            interp = cmd[1:stop]
-        cmd = interp + cmd[stop + 1:]
+            pass
+
+        try:
+            precmd = None
+            interp = interp_lookup[cmd_name]
+            if hasattr(interp, "__call__"):
+                precmd, interp = interp(window, view, filename)
+            cmds.append(precmd)
+        except KeyError:
+            interp = cmd_name
+        cmds += [env_cmdwrap(window, view, interp + cmd[stop + 1:])]
+    else:
+        cmds += [env_cmdwrap(window, view, cmd)]
+    cmd = '\n'.join(c for c in cmds if c)
 
     if is_windows:
         if not cmd:
@@ -289,7 +356,7 @@ class RunInTerminus(sublime_plugin.WindowCommand):
         else:
             term_open_cmd = "terminus_open"
 
-        cmd = make_cmd(self.window, filename=target_file,
+        cmd = make_cmd(self.window, self.window.active_view(), filename=target_file,
                        logout_on_finished=logout_on_finished)
         kwargs['use_available'] = use_available
         self.window.run_command(term_open_cmd, args=kwargs)
