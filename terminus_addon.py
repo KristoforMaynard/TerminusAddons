@@ -22,6 +22,10 @@ is_windows = sys.platform.startswith("win")
 
 
 def dirs_file_to_root(window, view):
+    """list folders from current file to the project root
+
+    This is used to go up the directory tree looking for a Pipfile.lock
+    """
     real_fname = os.path.realpath(view.file_name())
     dir_list = [os.path.dirname(real_fname)]
     for folder in window.folders():
@@ -37,6 +41,9 @@ def dirs_file_to_root(window, view):
     return dir_list
 
 def conda_precmd(window, view):
+    """if requested by a conda_env setting, prepare a command to activate
+    a conda environment
+    """
     conda_env = view.settings().get('conda_env', None)
     if conda_env:
         if is_windows:
@@ -51,11 +58,16 @@ def conda_precmd(window, view):
         precmd = None
     return precmd
 
-def env_cmdwrap(window, view, cmd):
+def pipenv_runwrap(window, view, cmd, extend_path=True, extend_pythonpath=True):
+    """If there is a pipfile, wrap cmd in `pipenv run`"""
     for d in dirs_file_to_root(window, view):
         if os.path.isfile(os.path.join(d, 'Pipfile.lock')):
-            cmd = ('PYTHONPATH="${{PYTHONPATH}}:{0}" pipenv run {1}'
-                   ''.format(d, cmd))
+            cmd0 = ''
+            if extend_path:
+                cmd0 += 'PATH="${{PATH}}:{0}" '.format(d)
+            if extend_pythonpath:
+                cmd0 += 'PYTHONPATH="${{PYTHONPATH}}:{0}" '.format(d)
+            cmd = '{0} pipenv run {1}'.format(cmd0, cmd)
     return cmd
 
 # def resolve_python_precmd(window, view, filename):
@@ -275,9 +287,9 @@ def make_cmd(window, view, filename=None, logout_on_finished=False):
             cmds.append(precmd)
         except KeyError:
             interp = cmd_name
-        cmds += [env_cmdwrap(window, view, interp + cmd[stop + 1:])]
+        cmds += [pipenv_runwrap(window, view, interp + cmd[stop + 1:])]
     else:
-        cmds += [env_cmdwrap(window, view, cmd)]
+        cmds += [pipenv_runwrap(window, view, cmd)]
     cmd = '\n'.join(c for c in cmds if c)
 
     if is_windows:
