@@ -54,7 +54,8 @@ def conda_precmd(window, view):
 def env_cmdwrap(window, view, cmd):
     for d in dirs_file_to_root(window, view):
         if os.path.isfile(os.path.join(d, 'Pipfile.lock')):
-            cmd = "pipenv run {0}".format(cmd)
+            cmd = ('PYTHONPATH="${{PYTHONPATH}}:{0}" pipenv run {1}'
+                   ''.format(d, cmd))
     return cmd
 
 # def resolve_python_precmd(window, view, filename):
