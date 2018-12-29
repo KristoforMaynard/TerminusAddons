@@ -361,16 +361,18 @@ def view_is_available_terminal(view):
 
 
 class RunInTerminus(sublime_plugin.WindowCommand):
-    def run(self, target_file=None, split_view=False, logout_on_finished=False,
-            use_available=True, **kwargs):
+    def run(self, cmd=None, target_file=None, split_view=False,
+            logout_on_finished=False, use_available=True, **kwargs):
 
         if split_view:
             term_open_cmd = "split_open_terminus"
         else:
             term_open_cmd = "terminus_open"
 
-        cmd = make_cmd(self.window, self.window.active_view(), filename=target_file,
-                       logout_on_finished=logout_on_finished)
+        if not cmd:
+            cmd = make_cmd(self.window, self.window.active_view(),
+                           filename=target_file,
+                           logout_on_finished=logout_on_finished)
         kwargs['use_available'] = use_available
         self.window.run_command(term_open_cmd, args=kwargs)
         sublime.set_timeout(lambda:self.window.run_command('terminus_send_string',
