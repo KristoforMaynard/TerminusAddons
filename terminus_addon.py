@@ -366,14 +366,22 @@ class RunInTerminus(sublime_plugin.WindowCommand):
 
         if split_view:
             term_open_cmd = "split_open_terminus"
+            kwargs['use_available'] = use_available
         else:
             term_open_cmd = "terminus_open"
+            # well these pops are rather hacky
+            kwargs.pop('direction', None)
+            kwargs.pop('always_split', None)
+            kwargs.pop('split_fraction', None)
+            kwargs['config_name'] = "Default"
 
         if not cmd:
             cmd = make_cmd(self.window, self.window.active_view(),
                            filename=target_file,
                            logout_on_finished=logout_on_finished)
-        kwargs['use_available'] = use_available
+
+        post_window_hooks = kwargs.pop('post_window_hooks', [])
+        post_window_hooks.append(['terminus_send_string', {'string': cmd + '\n'}])
+        kwargs['post_window_hooks'] = post_window_hooks
+
         self.window.run_command(term_open_cmd, args=kwargs)
-        sublime.set_timeout(lambda:self.window.run_command('terminus_send_string',
-                                                           {'string': cmd + '\n'}))
