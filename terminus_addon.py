@@ -90,6 +90,7 @@ interp_lookup = {'python': "python",
                  'ruby': 'ruby',
                  'lua': 'lua',
                  'julia': 'julia',
+                 'matlab': 'matlab',
                  'make': 'make'
                 }
 ext_lookup = {'.py': '<python> "{filename}"',
@@ -101,7 +102,10 @@ ext_lookup = {'.py': '<python> "{filename}"',
               '.bat': '"{filename}"',
               '.exe': '"{filename}"',
              }
-
+if is_windows:
+    ext_lookup['.m'] = '<matlab> -nosplash -nodesktop -sd {dirname} -r "{root}"'
+else:
+    ext_lookup['.m'] = '<matlab> -nosplash -nodesktop -sd {dirname} -r "{root}; exit"'
 
 def import_companions():
     try:
@@ -260,7 +264,12 @@ def make_cmd(window, view, filename=None, logout_on_finished=False):
     ext = ext.strip().lower()
 
     if ext in ext_lookup:
-        cmd = ext_lookup[ext].format(filename=filename)
+        fname_noext = os.path.splitext(filename)[0]
+        cmd = ext_lookup[ext].format(filename=filename,
+                                     root=root,
+                                     fname_noext=fname_noext,
+                                     dirname=os.path.dirname(filename),
+                                     )
     elif (root.strip().lower(), ext) == ('makefile', ''):
         cmd = '<make>'
     else:
