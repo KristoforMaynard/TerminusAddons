@@ -103,9 +103,9 @@ ext_lookup = {'.py': '<python> "{filename}"',
               '.exe': '"{filename}"',
              }
 if is_windows:
-    ext_lookup['.m'] = '<matlab> -nosplash -nodesktop -sd {dirname} -r "{root}"'
+    ext_lookup['.m'] = '<matlab> -nosplash -nodesktop -sd "{dirname}" -r "{root}"'
 else:
-    ext_lookup['.m'] = '<matlab> -nosplash -nodesktop -sd {dirname} -r "{root}; exit"'
+    ext_lookup['.m'] = '<matlab> -nosplash -nodesktop -sd "{dirname}" -r "{root}"; exit'
 
 def import_companions():
     try:
