@@ -12,6 +12,7 @@
 import os
 import subprocess
 import sys
+from threading import Lock
 import time
 
 import sublime
@@ -19,6 +20,9 @@ import sublime_plugin
 
 
 is_windows = sys.platform.startswith("win")
+
+tag_idx_lock = Lock()
+tag_idx = 0
 
 
 def dirs_file_to_root(window, view):
@@ -159,7 +163,7 @@ class SplitOpenTerminus(sublime_plugin.WindowCommand):
             return
 
         if origami is None:
-            window.run_command("terminus_open", args=kwargs)
+            terminus_open(window, kwargs)
             _emit_no_origami_msg()
         else:
             cells = window.get_layout()['cells']
@@ -244,7 +248,53 @@ class SplitOpenTerminus(sublime_plugin.WindowCommand):
                                                             "give_focus": True})
                     window.run_command("zoom_pane", args={"fraction": split_fraction})
 
-                window.run_command("terminus_open", args=kwargs)
+                terminus_open(window, kwargs)
+
+def terminus_open(window, kwargs):
+    if 'tag' in kwargs:
+        tag = kwargs['tag']
+    else:
+        tag = get_new_tag()
+        kwargs['tag'] = tag
+
+    post_window_hooks = kwargs.pop('post_window_hooks', [])
+    post_view_hooks = kwargs.pop('post_view_hooks', [])
+
+    window.run_command("terminus_open", args=kwargs)
+
+    fn = lambda: run_in_tagged_terminal(tag,
+                                        window_hooks=post_window_hooks,
+                                        view_hooks=post_view_hooks)
+    sublime.set_timeout_async(fn, 0)
+
+def get_new_tag():
+    with tag_idx_lock:
+        global tag_idx
+        tag = '_terminus_addon_' + str(tag_idx)
+        tag_idx += 1
+    return tag
+
+def run_in_tagged_terminal(tag, window_hooks=(), view_hooks=(), timeout=1,
+                           tsleep=0.01):
+    from Terminus.terminus.terminal import Terminal
+    term = None
+    t0 = time.time()
+    while True:
+        term = Terminal.from_tag(tag)
+        if term:
+            break
+        elif time.time() - t0 > timeout:
+            print("Wait for tagged terminal timed out (tag = ", tag, ")", sep='')
+            return None
+        time.sleep(tsleep)
+
+    for hook in window_hooks:
+        if hook[0] in ('terminus_send_string',):
+            hook[1]['tag'] = tag
+        term.view.window().run_command(*hook)
+
+    for hook in view_hooks:
+        term.view.run_command(*hook)
 
 def make_cmd(window, view, filename=None, logout_on_finished=False):
     v = window.extract_variables()
@@ -393,4 +443,7 @@ class RunInTerminus(sublime_plugin.WindowCommand):
         post_window_hooks.append(['terminus_send_string', {'string': cmd + '\n'}])
         kwargs['post_window_hooks'] = post_window_hooks
 
-        self.window.run_command(term_open_cmd, args=kwargs)
+        if term_open_cmd == "terminus_open":
+            terminus_open(self.window, kwargs)
+        else:
+            self.window.run_command(term_open_cmd, args=kwargs)
