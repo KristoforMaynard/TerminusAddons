@@ -390,11 +390,13 @@ def _pid_tty_of_view(view):
 
 def _pids_stats_in_tty(term_pid, tty):
     if is_windows:
+        CREATE_NO_WINDOW = 0x08000000
         info = subprocess.check_output(['wmic', 'process', 'where',
                                         'ParentProcessId=' + term_pid, 'get',
-                                        'Name,ProcessId,Status']
+                                        'Name,ProcessId,Status'],
+                                        creationflags=CREATE_NO_WINDOW,
                                         ).decode().splitlines()[1:]
-        info = [s.strip() for s in info]
+        info = [s.strip() for s in info if s.strip()]
         child_pids = [s.split()[1].strip() for s in info]
         child_stats = [s.split()[2].strip() if len(s.split()) > 2 else ''
                        for s in info]
@@ -409,12 +411,12 @@ def _pids_stats_in_tty(term_pid, tty):
 
 def view_is_available_terminal(view):
     term_pid, tty = _pid_tty_of_view(view)
-    if term_pid is None or tty is None:
+    if term_pid is None and tty is None:
         raise NotATerminal("view is not a terminal")
     child_pids, child_stats = _pids_stats_in_tty(term_pid, tty)
 
     if is_windows:
-        return bool(child_pids)
+        return not bool(child_pids)
     else:
         return not any(s.endswith('+') for s in child_stats)
 
