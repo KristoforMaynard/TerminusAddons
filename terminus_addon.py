@@ -9,6 +9,7 @@
 # cmd+alt+w, next pane?
 # cmd+alt+shift+w, prev pane?
 
+import datetime
 import os
 import subprocess
 import sys
@@ -20,9 +21,6 @@ import sublime_plugin
 
 
 is_windows = sys.platform.startswith("win")
-
-tag_idx_lock = Lock()
-tag_idx = 0
 
 
 def dirs_file_to_root(window, view):
@@ -254,7 +252,7 @@ def terminus_open(window, kwargs):
     if 'tag' in kwargs:
         tag = kwargs['tag']
     else:
-        tag = get_new_tag()
+        tag = '_terminus_addon_' + datetime.datetime.utcnow().isoformat()
         kwargs['tag'] = tag
 
     post_window_hooks = kwargs.pop('post_window_hooks', [])
@@ -266,13 +264,6 @@ def terminus_open(window, kwargs):
                                         window_hooks=post_window_hooks,
                                         view_hooks=post_view_hooks)
     sublime.set_timeout_async(fn, 0)
-
-def get_new_tag():
-    with tag_idx_lock:
-        global tag_idx
-        tag = '_terminus_addon_' + str(tag_idx)
-        tag_idx += 1
-    return tag
 
 def run_in_tagged_terminal(tag, window_hooks=(), view_hooks=(), timeout=1,
                            tsleep=0.01):
